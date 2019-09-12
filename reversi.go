@@ -367,8 +367,6 @@ func (X *Board) Move(piece Tuple) {
 							nextPiece.j += dir.j
 						}
 					}
-
-				
 			} else {continue}
 
 		}
@@ -639,7 +637,7 @@ func (n *Node) selectChild(N int, best string) *Node {
 
 		for _, corner := range corners {
 			if child.position == corner {
-				positionScore = uctScore *0.25
+				positionScore = uctScore *0.35
 			}
 		}
 		for _, badpos := range badPositions {
@@ -649,7 +647,7 @@ func (n *Node) selectChild(N int, best string) *Node {
 		}
 		for _, badpos := range veryBadPositions {
 			if child.position == badpos {
-				positionScore = uctScore * (-0.25)
+				positionScore = uctScore * (-0.65)
 			}
 		}
 		
@@ -717,6 +715,7 @@ func backProp(n *Node, wins int, loss int, played int ) {
 	}
 }
 
+
 func Search(root Node, nSims int, max_iter int) Tuple {
 
 	N := 0
@@ -735,6 +734,7 @@ func Search(root Node, nSims int, max_iter int) Tuple {
 		
 		// Keep selecting until leaf node is reached.
 		// This is 1 iteration
+		
 		currentNode = root.selectChild(N, "max")
 		for {
 			if len(currentNode.children) == 0 { 
@@ -772,7 +772,8 @@ func Search(root Node, nSims int, max_iter int) Tuple {
 				N += nSims
 			}
 
-		}	
+		}
+	
 
 	}
 

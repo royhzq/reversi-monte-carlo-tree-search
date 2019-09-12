@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	// "html"
 	"net/http"
 	"encoding/json"
 	"io"
@@ -62,7 +61,6 @@ func GameStateAPI(w http.ResponseWriter, r *http.Request) {
 
 	*/
 	var state = GameState{}
-
 	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
 	if err != nil {
 		panic(err)
@@ -71,16 +69,14 @@ func GameStateAPI(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println("error:", err)
 	}
-	
 	game := SetGame(state)
-	game.Show()
 	root := Node{
 		state:game,
 		depth:0,
 	}
-	decision := Search(root, 1, 5000) // AI calculation
+	decision := Search(root, 1, 1000) 
 	game.Move(decision)
-	game.Show()
+	
 	response := DecisionResponse{
 		Move:[2]int{decision.i, decision.j},
 		Colour:state.Turn,

@@ -35,6 +35,20 @@
 		msg.innerHTML = text;
 	}
 
+	function turn2Colour(turn) {
+		
+		// Converts turn (1 or -1) into respective colour
+		// (Black or White)
+
+		if (turn === 1) {
+			return 'Black'
+		} else if (turn === -1) {
+			return 'White'
+		} else {
+			return ''
+		}
+	}
+
 	function inArray(target, array) {
 		//  Check if target element is contained in array
 		for(var i = 0; i < array.length; i++) {
@@ -416,9 +430,11 @@
 				} else {
 					if (agent) {
 						// If the move was made by the agent, the agent gets to moves again
+						updateMessage("No move for you! Agent's turn")
 						agentMove(turn)
 					} else {
 						// If the move was made by user, user gets to move again
+						updateMessage("No moves for agent, your turn again")
 						boardThaw() //Unfreeze board for user's turn again
 					}
 				}
@@ -469,7 +485,7 @@
     			Move(json_response['move'][0], json_response['move'][1], agent=true)
     			// console.log(json_response)
     			boardThaw(); // Always unfreeze board for user to play next
-    			updateMessage("Your Turn.")
+    			updateMessage("Your Turn ("+turn2Colour(-turn)+")")
     			return json_response
     		}
   		}
@@ -506,8 +522,8 @@
 	// document.getElementsByTagName('')ElementById("board").innerHTML='<circle cx="100" cy="200" r="40" stroke="black" stroke-width="4" fill="yellow" />'
 	b = newBoard(dim);
 	renderBoard(b, "1");
-	boardFreeze();
-	agentMove(1);
+	// boardFreeze();
+	// agentMove(1);
 	initNeighbours();
 
 </script>
