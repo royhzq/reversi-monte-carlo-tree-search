@@ -74,7 +74,7 @@ func GameStateAPI(w http.ResponseWriter, r *http.Request) {
 		state:game,
 		depth:0,
 	}
-	decision := Search(root, 1, 1000) 
+	decision := Search(root, 5, 200) 
 	game.Move(decision)
 	
 	response := DecisionResponse{

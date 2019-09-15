@@ -654,6 +654,7 @@ func (n *Node) selectChild(N int, best string) *Node {
 		if best == "max" {
 			
 			totalUCTScore = uctScore + mobScore + innerScore + positionScore - greedPenalty
+
 			if totalUCTScore  > best_uctScore {
 				best_uctScore = totalUCTScore
 				index_best_score = i
@@ -661,7 +662,6 @@ func (n *Node) selectChild(N int, best string) *Node {
 		} 
 		if best =="min" {
 			// If selecting on minimum, only select nodes that been explored 
-
 			totalUCTScore = uctScore + mobScore - innerScore - positionScore + greedPenalty
 			if totalUCTScore  < best_uctScore && child.played > 0 {
 				best_uctScore = totalUCTScore
