@@ -33,7 +33,7 @@ type DecisionResponse struct {
 
 func Index(w http.ResponseWriter, r *http.Request) {
 	// fmt.Fprintf(w, "Reversi, %q", html.EscapeString(r.URL.Path))
-	http.ServeFile(w, r, "index.html" )
+	http.ServeFile(w, r, "./static/index.html" )
 }
 
 

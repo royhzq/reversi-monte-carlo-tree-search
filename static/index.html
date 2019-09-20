@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Reversi Monte Carlo Tree Search</title>
+	<script src="static/js/reversi-board.js"></script>
+</head>
+<style>
+	.scoreboard {
+		width: 800px;
+		text-align: center;
+	}
+	.score-piece-black {
+		font-size: 3rem;
+		color:black;
+	}
+	.score-piece-white {
+		font-size: 3rem;
+		color:grey;
+	}
+	.score-text {
+		font-size: 2.5rem;
+	}
+	.status {
+		text-align: center;
+		width: 800px;
+		font-size: 3rem;
+	}
+</style>
+<body>
+
+<div id="canvas">
+	<svg id="board" width="800" height="800">	
+	</svg>
+</div>
+<div class="scoreboard">
+	<span class="score-piece-black">&nbsp;&#11044;&nbsp;</span><span class="score-text" id="blackscore">2</span>
+	&nbsp;&nbsp;
+	<span class="score-piece-white">&nbsp;&#9711;&nbsp;</span><span class="score-text" id="whitescore">2</span>
+</div>
+<br>
+<div class="status">
+	<span id="message">Thinking...</span>
+</div>
+<script type="text/javascript">
+/**
+* Render SVG reversi game board 
+*/
+(function() {
+	var width =800;
+	var dim = 8;
+	drawGrid(800, 8);
+	var boardPieces = document.getElementsByClassName("boardPiece");
+	var boardSquares = document.getElementsByClassName("boardSquare");
+	// Add click event listeners to each square on board
+	for (m=0; m < boardSquares.length; m++ ){
+	    boardSquares[m].addEventListener("click", function() {
+	        Move(this.dataset.i, this.dataset.j);
+	    });
+	}
+	for (m=0; m < boardPieces.length; m++ ){
+	    boardPieces[m].addEventListener("click", function() {
+	        Move(this.dataset.i, this.dataset.j);
+	    });
+	}
+	renderBoard(newBoard(dim), "1");
+	initNeighbours();
+})();
+</script>
+</body>
+</html>
