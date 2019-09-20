@@ -1,7 +1,46 @@
 /*!
- * Reversi Game Board
+ * Reversi/Othello Game Engine
  * 2019 Roy Hung
+ *
  */
+
+function selectColour(turn) {
+    /** 
+    * User selects which colour to play before game starts
+    * 1 = black , -1 = white
+    * After selection, overlay is removed and game starts
+    * @param {number} turn - Integer 1 or -1 (black / white)
+    */
+    var overlay = document.getElementById("overlay");
+    overlay.style.display = "none";
+    overlay.style.zIndex = "-1";
+    if (turn === 1) {
+        // User starts first - User plays Black
+        updateMessage("Your Turn ("+turn2Colour(turn)+")");
+    }
+    if (turn === -1) {
+        // Agent starts first - User plays White
+        boardFreeze();
+        agentMove(1);
+    }
+}
+
+function resetGame() {
+    /**
+    * Resets game and displays overlay
+    * to let users choose side
+    */
+    var overlay = document.getElementById("overlay");
+    var svg = document.getElementById("board");
+    overlay.style.display = "";
+    overlay.style.zIndex = "10";
+    // Renders a new board
+    renderBoard(newBoard(), "1");
+    initNeighbours();
+    // Reset scores
+    document.getElementById("blackscore").innerHTML = 2;
+    document.getElementById("whitescore").innerHTML = 2;
+}
 
 function updateMessage(text) {
     /**
@@ -45,20 +84,19 @@ function inArray(target, array) {
     return false;
 }
 
-function newBoard(dim) {
+function newBoard() {
     /** 
     * Creates a 2D array representing the reversi board
     * Initializes starting pieces for a new game
-    * Returns dim x dim 2D array
-    * @param {number} dim - dimension of square board (i.e. 8x8)
+    * Returns 8 x 8 2D array
     * @returns {Array} board - An array of arrays representing the 2D reversi board
     */
     var board =[];
-    for (var i=0; i <dim; i++) {
-        board.push(Array(dim))
+    for (var i=0; i < 8; i++) {
+        board.push(Array(8))
     }
     // Setup starting pieces
-    var k = dim/2 -1;
+    var k = 8/2 -1;
     board[k][k] = -1;
     board[k][k+1] = 1;
     board[k+1][k] = 1;
@@ -67,11 +105,10 @@ function newBoard(dim) {
     return board;
 }
 
-function drawGrid(width, dim) {
+function drawGrid(width) {
     /** 
     * Render the reversi board in an svg element
     * @param {number} width - pixel width for board size
-    * @param {number} dim - dimension of square board (i.e. 8x8)
     */
     var svg = document.getElementById("board");
     svg.setAttribute('data-turn', '1');
@@ -80,7 +117,7 @@ function drawGrid(width, dim) {
     svg.setAttribute('data-validspace', '[]');
     svg.setAttribute('data-blackscore', '');
     svg.setAttribute('data-whitescore', '');
-    sqLength = width/dim; // Initialize size of each square
+    sqLength = width/8; // Initialize size of each square
     // Draw border for the reversi board
     gridBorder = ('<rect class="gridBorder" '
         + 'x=0 ' 
@@ -91,8 +128,8 @@ function drawGrid(width, dim) {
     );
     svg.innerHTML += gridBorder;
     // Loop through each square in board to initialize data attributes 
-    for (var i=0; i < dim; i++) {
-        for (var j=0; j < dim; j++) {
+    for (var i=0; i < 8; i++) {
+        for (var j=0; j < 8; j++) {
             boardSquare = ('<rect '
                     + 'class="boardSquare"' 
                     + 'x=' + j*sqLength + ' '
@@ -120,20 +157,37 @@ function drawGrid(width, dim) {
             svg.innerHTML += emptyPiece;
         }
     }
+    var boardPieces = document.getElementsByClassName("boardPiece");
+    var boardSquares = document.getElementsByClassName("boardSquare");
+    // Add click event listeners to each square on board
+    for (m=0; m < boardSquares.length; m++ ){
+        boardSquares[m].addEventListener("click", function() {
+            Move(this.dataset.i, this.dataset.j);
+        });
+    }
+    for (m=0; m < boardPieces.length; m++ ){
+        boardPieces[m].addEventListener("click", function() {
+            Move(this.dataset.i, this.dataset.j);
+        });
+    }
 }
 
 function boardFreeze() {
     /** 
     * Disables click events on board
+    * Disallow game reset
     */
     document.getElementById("board").style.pointerEvents = "none";
+    document.getElementById("reset-button").disabled = true;
 }
 
 function boardThaw() {
     /** 
     * Enables click events on board
+    * Allow game to reset
     */
     document.getElementById("board").style.pointerEvents = "";
+    document.getElementById("reset-button").disabled = false;
 }
 
 function getPiece(i,j) {
@@ -161,7 +215,7 @@ function getNeighbour(i, j) {
     for (var d = 0; d < directions.length ; d++) {
         var iNext  = parseInt(i) + directions[d][0];
         var jNext = parseInt(j) + directions[d][1];
-        if (iNext > dim-1 || jNext > dim -1 || iNext < 0 || jNext < 0) {
+        if (iNext > 8-1 || jNext > 8 -1 || iNext < 0 || jNext < 0) {
             continue;
         } else {
             if (getPiece(iNext, jNext).dataset.value === "0") {
@@ -230,7 +284,7 @@ function checkValidDir(i, j, iDir, jDir) {
 
         var currPiece = getPiece(i, j);
 
-        if (i > dim-1 || j > dim-1 || i < 0 || j < 0) {
+        if (i > 8-1 || j > 8-1 || i < 0 || j < 0) {
             /* When coordinates are out of range, (i.e., out of the board),
             break the loop and return false for this direction's validity */
             break;
@@ -326,14 +380,17 @@ function renderBoard(board, turn) {
                 piece.dataset.value = "1";
                 filled.push(i.toString() + j.toString());
                 blackscore += 1;
-            }  
-            if (pieceVal === -1) {
+            }  else if (pieceVal === -1) {
                 piece.style.fill = "white";
                 piece.style.stroke ="black";
                 piece.dataset.value = "-1";
                 filled.push(i.toString() + j.toString());
                 whitescore += 1;
-            }   
+            } else {
+                piece.style.fill = "transparent";
+                piece.style.stroke = "";
+                piece.dataset.value = "0";
+            }
         }
     }
     svg.dataset.blackscore = blackscore;
@@ -549,28 +606,3 @@ function agentMove(turn) {
         })
     );
 }
-
-width =800; 
-dim = 8;
-drawGrid(800, 8);
-boardPieces = document.getElementsByClassName("boardPiece")
-boardSquares = document.getElementsByClassName("boardSquare")
-
-for (m=0; m < boardSquares.length; m++ ){
-
-    boardSquares[m].addEventListener("click", function() {
-        Move(this.dataset.i, this.dataset.j);
-    })
-}
-for (m=0; m < boardPieces.length; m++ ){
-
-    boardPieces[m].addEventListener("click", function() {
-        Move(this.dataset.i, this.dataset.j);
-    })
-}
-// document.getElementsByTagName('')ElementById("board").innerHTML='<circle cx="100" cy="200" r="40" stroke="black" stroke-width="4" fill="yellow" />'
-b = newBoard(dim);
-renderBoard(b, "1");
-// boardFreeze();
-// agentMove(1);
-initNeighbours();
