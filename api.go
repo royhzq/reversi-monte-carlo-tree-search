@@ -23,9 +23,9 @@ type DecisionResponse struct {
 	// Struct to hold response information on move made by AI
 	// in response to the gamestate posted by user to endpoint
 
-	Move       [2]int `json:"move"`       // Decision of agent for Position to place piece
-	Colour     int    `json:"colour`      // Colour of the piece placed by agent
-	Turn       int    `json:"turn"`       // Whose turn it is after move is made
+	Move       [2]int `json:"move"`        // Decision of agent for Position to place piece
+	Colour     int    `json:"colour`       // Colour of the piece placed by agent
+	Turn       int    `json:"turn"`        // Whose turn it is after move is made
 	BlackScore int    `json:"blackScore"`  // Black's Score after Move is made
 	WhiteScore int    `json:"whiteScore"`  // White's Score after Move is made
 }
@@ -38,18 +38,13 @@ func Index(w http.ResponseWriter, r *http.Request) {
 
 
 func GameStateAPI(w http.ResponseWriter, r *http.Request) {
-
-	/* 
-
-	API Endpoint to receive JSON gamestate from POST request 
-
+	/*  API Endpoint to receive JSON gamestate from POST request 
 	Request JSON example:
 		{
 			"blackFilled":[[3,3],[4,4]],    // Positions on board filled with black pieces
 			"whiteFilled":[[3,4],[4,3]],    // Positions on board filled with white piece
 			"turn":1,                       // Agent's turn to play as (1 black, -1 white)
 		}
-
 	Response JSON example:
 		{
 			"move":[3,2],                   // The move the agent is going to make
@@ -57,8 +52,6 @@ func GameStateAPI(w http.ResponseWriter, r *http.Request) {
 			"blackScore":1,
 			"whiteScore":4
 		}
-
-
 	*/
 	var state = GameState{}
 	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
