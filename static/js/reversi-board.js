@@ -522,6 +522,7 @@ function Move(i,j, agent) {
                         whitescoreFinal.toString()
                     );
                 }
+                boardThaw();
             } else {
                 if (agent) {
                     // If the move was made by the agent, the agent gets to moves again
