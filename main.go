@@ -3,15 +3,12 @@ package main
 import (
 	"log"
 	"net/http"
-	// "fmt"
 
 	"github.com/gorilla/mux"
 )
 
 func main() {
-	// fmt.Println(Simulator(100, 1, 1))
-	RunSimulation()
-	// RandomRandomPlay(10000)
+	// RunSimulation()
 	router := mux.NewRouter().StrictSlash(true)
 	s := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
 	router.HandleFunc("/", Index)
