@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	// RunSimulation()
+	RunSimulation(100)
 	router := mux.NewRouter().StrictSlash(true)
 	s := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
 	router.HandleFunc("/", Index)

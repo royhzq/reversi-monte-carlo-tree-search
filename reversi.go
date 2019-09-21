@@ -746,7 +746,12 @@ func Search(root Node, nSims int, max_iter int) Position {
 	return decision
 }
 
-func Simulator(N int, nSims int, max_iter int) []int {
+type simResults struct {
+	results []int
+	timestamp string
+}
+
+func Simulator(N int, nSims int, max_iter int) simResults {
 	// Simulate N games with agent pitted against random play
 	// Returns # of games won/lost/draw for MCTS agent
 	// Used as benchmark testing against Search() function 
@@ -785,7 +790,7 @@ func Simulator(N int, nSims int, max_iter int) []int {
 				}
 			} else {break}
 		}
-		fmt.Println("Game #", nGames, game.winner, game.blackScore, game.whiteScore)
+		// fmt.Println("Game #", nGames, game.winner, game.blackScore, game.whiteScore)
 		if game.winner == 1 {
 			nBlackWins +=1
 		}
@@ -796,11 +801,15 @@ func Simulator(N int, nSims int, max_iter int) []int {
 			nDraws +=1
 		}
 	}
+	timeNow := time.Now().UTC().Format("20060102150405")
 	fmt.Printf(
-		"N:%d,nSims:%d,max_iter:%d,BlackWins:%d,WhiteWins:%d,Draws:%d \n", 
-		N, nSims, max_iter, nBlackWins, nWhiteWins, nDraws,
+		"N:%d, nSims:%d, max_iter:%d, BlackWins:%d, WhiteWins:%d, Draws:%d, Time:%s \n", 
+		N, nSims, max_iter, nBlackWins, nWhiteWins, nDraws, timeNow,
 	)
-	payload := []int{N, nSims, max_iter, nBlackWins, nWhiteWins, nDraws}
+	payload := simResults {
+		results : []int{N, nSims, max_iter, nBlackWins, nWhiteWins, nDraws},
+		timestamp : timeNow,
+	}
 
 	return payload
 }
@@ -809,10 +818,10 @@ func Simulator(N int, nSims int, max_iter int) []int {
 func RandomRandomPlay(N int) {
 	// Simulate N games with random play pitted against random play
 	// Returns # of games won/lost/draw for Black vs White
-	nBlackWins :=0
-	nWhiteWins :=0
-	nDraws :=0
-	for nGames:=0; nGames < N; nGames++ {
+	nBlackWins := 0
+	nWhiteWins := 0
+	nDraws := 0
+	for nGames:= 0; nGames < N; nGames++ {
 		game := newGame()
 		move := Position{0,0}
 		for {
@@ -858,25 +867,25 @@ func RandomRandomPlay(N int) {
 	fmt.Printf("Black Wins: %d , White Wins: %d , Draws: %d \n", nBlackWins, nWhiteWins, nDraws)
 }
 
-func check(e error) {
-    if e != nil {
-        panic(e)
-    }
-}
-
-func RunSimulation() {
+func RunSimulation(N int) {
 	// Runs multiple simulations from Simulator()
+	// N = # of simulations for each parameter setting
 	// Iterates across range of parameters for nSims and max_iter
+	// For each iteration, record number of wins out of 100 simulations
 	// Writes results to csv
 	nSimsRange := []int{1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100}
 	maxIterRange := []int{1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100}
-	f, err := os.Create("./simulator.txt")
-	check(err)
+	f, err := os.Create("./simulation.txt")
+	if err != nil {
+		panic(err)
+	}
 	defer f.Close()
 	for _, nSims := range nSimsRange {
 		for _, max_iter := range maxIterRange {
-			results := Simulator(100, nSims, max_iter)
-			_, err = f.WriteString(fmt.Sprintln(results))
+			for i := 1;  i <= N; i++ {
+				results := Simulator(100, nSims, max_iter)
+				_, err = f.WriteString(fmt.Sprintln(results))
+			}
 		}
 	}
 }
