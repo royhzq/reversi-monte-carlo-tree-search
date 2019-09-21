@@ -785,12 +785,12 @@ func Simulator(N int, nSims int, max_iter int) simResults {
 							move = game.validSpace[rand.Intn(len(game.validSpace))]
 						}
 					}
-					// fmt.Println("White moves: ", move.PrintPrettifyNotation(), game.blackScore, game.whiteScore)
 					game.Move(move)	
+					// fmt.Println("White moves: ", move.PrintPrettifyNotation(), game.blackScore, game.whiteScore)
 				}
 			} else {break}
 		}
-		// fmt.Println("Game #", nGames, game.winner, game.blackScore, game.whiteScore)
+		// fmt.Println("Game #", nGames, game.winner, game.blackScore, game.whiteScore, time.Now().UTC().Format("20060102150405"))
 		if game.winner == 1 {
 			nBlackWins +=1
 		}
@@ -873,8 +873,8 @@ func RunSimulation(N int) {
 	// Iterates across range of parameters for nSims and max_iter
 	// For each iteration, record number of wins out of 100 simulations
 	// Writes results to csv
-	nSimsRange := []int{1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100}
-	maxIterRange := []int{1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100}
+	nSimsRange := []int{1, 20, 40, 50, 80, 100}
+	maxIterRange := []int{1, 20, 40, 60, 80, 100}
 	f, err := os.Create("./simulation.txt")
 	if err != nil {
 		panic(err)
