@@ -57,6 +57,8 @@ var veryBadPositions = []Position{
 	{1,1},{1,6},{6,1},{6,6},
 }
 
+	
+
 func (position Position) PrintPrettifyNotation() strPosition {
 	// Converts Position from (row, column) notation 
 	// to standard Othello notation 
@@ -641,10 +643,6 @@ func (n *Node) selectChild(N int, best string) *Node {
 	}
 
 	return n.children[index_best_score]
-
-	// Random method
-	// rand.Seed(time.Now().UTC().UnixNano())
-	// return n.children[rand.Intn(len(n.children))]
 }
 
 func backProp(n *Node, wins int, loss int, played int ) {
@@ -747,37 +745,6 @@ func Search(root Node, nSims int, max_iter int) Position {
 
 	return decision
 }
-
-
-// func main() {
-// 	// time_start := time.Now()
-// 	game := newGame()
-// 	move := Position{0,0}
-// 	root := Node{
-// 		// state:newGame(),
-// 		state:game,
-// 		depth:0,
-// 	}
-// 	move = Search(root, 1, 5000)
-// 	fmt.Println("$$$ ", move, game.turn)
-
-
-
-// 	// move := Position{0,0}
-// 	// root := Node{
-// 	// 	// state:newGame(),
-// 	// 	state:game,
-// 	// 	depth:0,
-// 	// }
-// 	// move = Search(root, 1, 5000)
-// 	// 	fmt.Println("$$$ ", move, game.turn)
-// 	// game.Show()
-// 	// fmt.Println(game.blackScore, game.whiteScore)
-// 	// elapsed := time.Since(time_start)
-// 	// fmt.Println("Time elapsed: ", elapsed)
-
-
-// 	//####
 
 func Simulator(N int, nSims int, max_iter int) []int {
 	// Simulate N games with agent pitted against random play
@@ -891,7 +858,6 @@ func RandomRandomPlay(N int) {
 	fmt.Printf("Black Wins: %d , White Wins: %d , Draws: %d \n", nBlackWins, nWhiteWins, nDraws)
 }
 
-	
 func check(e error) {
     if e != nil {
         panic(e)
@@ -910,7 +876,6 @@ func RunSimulation() {
 	for _, nSims := range nSimsRange {
 		for _, max_iter := range maxIterRange {
 			results := Simulator(100, nSims, max_iter)
-			// Delimits []int{} into comma seperated string and writes into file
 			_, err = f.WriteString(fmt.Sprintln(results))
 		}
 	}
