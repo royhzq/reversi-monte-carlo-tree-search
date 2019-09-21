@@ -8,7 +8,8 @@ import (
 	"time"
 	"math"
 	"strconv"
-	"math/rand"
+	"math/rand"	
+	"os"
 )
 
 type Position struct {
@@ -491,7 +492,7 @@ func Rollout(game Board, nSim int) (int, int, int, time.Duration) {
 	tempGame := game
 	start := time.Now()
 	for i := 0; i < nSim ; i++ {
-		tempGame = simRand(game)
+		tempGame = simRandPlus(game)
 		if tempGame.winner == turn {
 			wins++
 		} 
@@ -778,7 +779,7 @@ func Search(root Node, nSims int, max_iter int) Position {
 
 // 	//####
 
-func Simulator(N int, nSims int, max_iter int) {
+func Simulator(N int, nSims int, max_iter int) []int {
 	// Simulate N games with agent pitted against random play
 	// Returns # of games won/lost/draw for MCTS agent
 	// Used as benchmark testing against Search() function 
@@ -828,7 +829,13 @@ func Simulator(N int, nSims int, max_iter int) {
 			nDraws +=1
 		}
 	}
-	fmt.Printf("Black Wins: %d , White Wins: %d , Draws: %d \n", nBlackWins, nWhiteWins, nDraws)
+	fmt.Printf(
+		"N:%d,nSims:%d,max_iter:%d,BlackWins:%d,WhiteWins:%d,Draws:%d \n", 
+		N, nSims, max_iter, nBlackWins, nWhiteWins, nDraws,
+	)
+	payload := []int{N, nSims, max_iter, nBlackWins, nWhiteWins, nDraws}
+
+	return payload
 }
 
 
@@ -882,4 +889,29 @@ func RandomRandomPlay(N int) {
 		}
 	}
 	fmt.Printf("Black Wins: %d , White Wins: %d , Draws: %d \n", nBlackWins, nWhiteWins, nDraws)
+}
+
+	
+func check(e error) {
+    if e != nil {
+        panic(e)
+    }
+}
+
+func RunSimulation() {
+	// Runs multiple simulations from Simulator()
+	// Iterates across range of parameters for nSims and max_iter
+	// Writes results to csv
+	nSimsRange := []int{1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100}
+	maxIterRange := []int{1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100}
+	f, err := os.Create("./simulator.txt")
+	check(err)
+	defer f.Close()
+	for _, nSims := range nSimsRange {
+		for _, max_iter := range maxIterRange {
+			results := Simulator(100, nSims, max_iter)
+			// Delimits []int{} into comma seperated string and writes into file
+			_, err = f.WriteString(fmt.Sprintln(results))
+		}
+	}
 }
