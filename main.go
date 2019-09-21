@@ -8,7 +8,8 @@ import (
 )
 
 func main() {
-
+	Simulator(100, 20, 10)
+	// RandomRandomPlay(10000)
 	router := mux.NewRouter().StrictSlash(true)
 	s := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
 	router.HandleFunc("/", Index)

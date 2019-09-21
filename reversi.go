@@ -33,6 +33,29 @@ var Directions = []Position{
     Position{-1,-1},
 }
 
+// Corner pieces in reversi/othello are considered high in value
+// For heuristics to supplement UCT to select child node
+var corners = []Position{
+	{0,0},{0,7},{7,0},{7,7},
+}
+
+// Generally considered bad positions 
+// These are positions adjacent to the corners
+// For heuristics to supplement UCT to select child node
+var badPositions = []Position{
+	{0,1},{1,0},
+	{6,0},{7,1},
+	{7,6},{6,7},
+	{0,6},{1,7},
+}
+
+// Generally considered very bad positions 
+// These are positions that give corners away
+// For heuristics to supplement UCT to select child node
+var veryBadPositions = []Position{
+	{1,1},{1,6},{6,1},{6,6},
+}
+
 func (position Position) PrintPrettifyNotation() strPosition {
 	// Converts Position from (row, column) notation 
 	// to standard Othello notation 
@@ -125,7 +148,7 @@ func (X *Board) initNeighbours() {
 	for _, piece := range filled {
 		pieceNeighbour = X.getNeighbour(piece)
 		for _, n := range pieceNeighbour {
-			if posInSlice(n, neighbours)==false {
+			if posInSlice(n, neighbours) == false {
 				neighbours = append(neighbours, n)
 			}
 		}
@@ -285,7 +308,7 @@ func (X *Board) Move(piece Position) {
 	// Place a piece on the Position (piece) given
 	// Flips all relevant pieces on the board
 	// Updates scores and changes turn to the next player
-	if posInSlice(piece, X.validSpace)==false {
+	if posInSlice(piece, X.validSpace) == false {
 		fmt.Println("This is an invalid move")
 	} else {
 		flippedCount := 0
@@ -313,7 +336,7 @@ func (X *Board) Move(piece Position) {
 					}
 			} else {continue}
 		}
-		X.board[piece.i][piece.j] = X.turn // Place the piece only after flipping
+		X.board[piece.i][piece.j] = X.turn // Place the piece after flipping
 
 		// Update score
 		// Total score increase = all flipped pieces + 1 new piece placed
@@ -429,9 +452,35 @@ func simRand(game Board) Board {
 			game.Move(move)		
 		} else {break}
 	}
-
 	return game
 }
+
+func simRandPlus(game Board) Board {
+	// Given a Board, simulate all moves semi-randomly until end of game
+	// Added heuristic to discourage making very bad positions during rollouts
+	// Both sides in simulation will avoid very bad positions
+	// Alternative to default simRand function
+	for {
+		if game.winner == 0 {
+			
+			//rand is deterministic. Need to set seed 
+			rand.Seed(time.Now().UTC().UnixNano()) 
+			move := game.validSpace[rand.Intn(len(game.validSpace))]
+
+			// When a very bad position is chosen,
+			// Choose again, repeat again if very bad position chosen
+			if posInSlice(move, veryBadPositions) == true {
+				move = game.validSpace[rand.Intn(len(game.validSpace))]
+				if posInSlice(move, veryBadPositions) == true {
+					move = game.validSpace[rand.Intn(len(game.validSpace))]
+				}
+			}
+			game.Move(move)		
+		} else {break}
+	}
+	return game
+}
+
 
 func Rollout(game Board, nSim int) (int, int, int, time.Duration) {
 	// Rollout function simulates nSim number of games based on given board situation
@@ -471,6 +520,7 @@ type Node struct {
 	mobility float64      // Raw Mobility score:
 						  //     The Accumulated count of valid space from explored nodes 
 						  //     divided by total pieces
+						  
 	mobilityDenom float64 // Denominator for mobility score:
 	                      //     4 x current opponent pieces 
 	                      //     1 opponent piece can only have max 4 valid spaces to flip
@@ -511,54 +561,50 @@ func (n *Node) selectChild(N int, best string) *Node {
 	// N = # of games played overall
 	// Node selction based on upper confidence bound UCT
 	index_best_score := 0
-	best_uctScore:= -0.00
-	totalUCTScore:= 0.00
+	best_uctScore := -0.00
+	totalUCTScore := 0.00
+	uctScore := 0.00
+	// var uctScore float64
+
 	if best == "max" {
 		best_uctScore = -9999.00
 	}
 	if best == "min" {
 		best_uctScore = 9999.0
-	}	
-	var uctScore float64
-	corners := []Position{{0,0}, {0,7}, {7,0}, {7,7}}
-	badPositions := []Position{
-		{0,1},{1,0},
-		{6,0},{7,1},
-		{7,6},{6,7},
-		{0,6},{1,7},
-	}
-	veryBadPositions := []Position{
-		{1,1},{1,6},{6,1},{6,6},
 	}
 	for i, child := range n.children {
-
 		uctScore = UCT(child.wins, child.played, N, 3)  
 		
 		// Adjustment score for mobility
-		mobScore := 0.5*math.Log(child.mobility+1)/float64(child.played +1) 
+		// Greater mobility translates to more available moves to make 
+		// at later turns
+		// mobScore := 0.5*math.Log(child.mobility+1)/float64(child.played +1) 
 
-		//Adjustment score to favor inner pieces 
+		// Adjustment score to favor inner pieces 
+		// Inner pieces, or pieces close to the center of the board
+		// have a higher value as they allow for more connections
+		// to all other parts of the board
 		innerScore := uctScore * 0.8/math.Sqrt((math.Pow((float64(child.position.i)-3.5),2)+math.Pow((float64(child.position.j)-3.5),2)))
-		
-		//Adjustment score to account for universally good / bad positions
-		positionScore := 0.00
 
-		//Penalty for greed. Squared denominator penalizes early game greed more heavily
+		// Penalty for greed 
+		// Squared denominator penalizes early game greed more heavily
+		// Flipping more pieces early in the game is generally a bad strategy
+		// Greediness gives less mobility in early to mid-games
 		greedPenalty := 0.00
 		if n.state.turn == 1 {
 			greedPenalty = float64(child.state.blackScore - n.state.blackScore)/math.Pow(float64(child.state.blackScore + child.state.whiteScore),1)
-			// fmt.Println(child.position ,"Change in BlackScore: ", child.state.blackScore - n.state.blackScore, child.state.blackScore + child.state.whiteScore, greedPenalty)
 		} 
- 	
 		if n.state.turn == -1 {
 			greedPenalty = float64(child.state.whiteScore - n.state.whiteScore)/math.Pow(float64(child.state.blackScore + child.state.whiteScore),1)
-			// fmt.Println(child.position ,"Change in BlackScore: ", child.state.whiteScore - n.state.whiteScore, child.state.blackScore + child.state.whiteScore, greedPenalty)
 		}
 
-
+		// Adjustment score to account for generally good / bad positions
+		// - Encourages making moves that are corners
+		// - Discourages making moves that give away corners
+		positionScore := 0.00
 		for _, corner := range corners {
 			if child.position == corner {
-				positionScore = uctScore *0.35
+				positionScore = uctScore *0.5
 			}
 		}
 		for _, badpos := range badPositions {
@@ -568,43 +614,31 @@ func (n *Node) selectChild(N int, best string) *Node {
 		}
 		for _, badpos := range veryBadPositions {
 			if child.position == badpos {
-				positionScore = uctScore * (-0.65)
+				positionScore = uctScore * (-0.35)
 			}
 		}
-		
 		if best == "max" {
-			
-			totalUCTScore = uctScore + mobScore + innerScore + positionScore - greedPenalty
-
+			totalUCTScore = uctScore  + innerScore + positionScore - greedPenalty
+			totalUCTScore = uctScore 
+			// totalUCTScore = uctScore + mobScore + innerScore + positionScore - greedPenalty
 			if totalUCTScore  > best_uctScore {
 				best_uctScore = totalUCTScore
 				index_best_score = i
 			}			
 		} 
 		if best =="min" {
+
 			// If selecting on minimum, only select nodes that been explored 
-			totalUCTScore = uctScore + mobScore - innerScore - positionScore + greedPenalty
+			totalUCTScore = uctScore  - innerScore - positionScore + greedPenalty
+			totalUCTScore = uctScore
+			// totalUCTScore = uctScore + mobScore - innerScore - positionScore + greedPenalty
 			if totalUCTScore  < best_uctScore && child.played > 0 {
 				best_uctScore = totalUCTScore
 				index_best_score = i
 			}						
 		}
-		
-		// fmt.Printf("{%d,%d}, UCT: %f (%.0f%%), mob: %f (%.0f%%), inner: %f (%.0f%%), position: %f (%.0f%%), greed: %f (%.0f%%), total UCT: %f (100%%), visited: %d \n",
-		// 	child.position.i,child.position.j,
-		// 	uctScore, uctScore/totalUCTScore *100,
-		// 	mobScore, mobScore/totalUCTScore *100,			
-		// 	innerScore, innerScore/totalUCTScore *100,			
-		// 	positionScore, positionScore/totalUCTScore *100,			
-		// 	greedPenalty, greedPenalty/totalUCTScore *100,			
-		// 	totalUCTScore, 		
-		// 	child.played, 
-		// )
 	}
-	// fmt.Printf("SELECTED: {%d,%d}, Depth: %d \n", 
-	// 	n.children[index_best_score].position.i ,n.children[index_best_score].position.j,  
-	// 	n.children[index_best_score].depth,
-	// )
+
 	return n.children[index_best_score]
 
 	// Random method
@@ -613,12 +647,11 @@ func (n *Node) selectChild(N int, best string) *Node {
 }
 
 func backProp(n *Node, wins int, loss int, played int ) {
-	// Backpropagation to add count of wins and played games starting from Node n
-	// wins : # of wins in sim , played : # of games played in sim
-	// wins refer to the # of wins of the turn of current node n
+
+	// Backpropagation to traverse from child to parent nodes
+	// Update count of wins and played games starting from Node n
 	turn := n.state.turn // which are the wins referring to: (black:1, white:-1)
 	mobility := float64(len(n.state.validSpace))
-
 	for {
 		if n.state.turn == turn {
 			n.wins += wins
@@ -635,79 +668,82 @@ func backProp(n *Node, wins int, loss int, played int ) {
 	}
 }
 
-
 func Search(root Node, nSims int, max_iter int) Position {
 
+	// Main function of agent to search for the optimal move
+	// Expands children nodes and traverses down the tree to leaf node
+	// Simulates games and backpropagates results
+	// Across max_iter iterations
+	// After which, selects the next move based on selectChild function
 	N := 0
 	wins := 0
 	loss := 0
 	// minScore := 999.9 // Any val greter than 1
 	decision := Position{0,0}
-
-	root.expandNode()
+	root.expandNode() 
 	currentNode := root.selectChild(N, "min")
 	wins, loss, _, _ = Rollout(currentNode.state, nSims)
 	backProp(currentNode, wins, loss, nSims)
 	N += nSims // Update total number of simulations 
 
+	// Each iteration traverses down the tree
+	// From parent to leaf node
+	// Path of selections based on selectChild function
+	// Once leaf node is reached, commence Rollout to simulate games
 	for iter:=0; iter < max_iter; iter++ {
 		
-		// Keep selecting until leaf node is reached.
-		// This is 1 iteration
-		
+		// Keep selecting child nodes until leaf node is reached.		
 		currentNode = root.selectChild(N, "max")
 		for {
 			if len(currentNode.children) == 0 { 
 				break 
 			} else {
 				currentNode = currentNode.selectChild(N, "max")
-				// fmt.Println("Traversing down.. Depth: ", currentNode.depth)
 			}
 		}
 
-		// Leaf node is current node
-
+		// Leaf node is reached - currentNode is leaf node
 		if currentNode.played == 0 {
-			//If no games played on this node, rollout simulate
+
+			// If no games played yet on this node -> rollout
+			// Then backpropagate results
 			wins, loss, _, _ = Rollout(currentNode.state, nSims)
 			N += nSims
 			backProp(currentNode, wins, loss, nSims)
 			N += nSims
 		} else {
 
+			// When leaf node has been simulated before
+			// Expand and look for children
 			currentNode.expandNode()
 			if len(currentNode.children) == 0 {
-				// if there are no more children, rollout current node
+
+				// If there are no more children left
+				// Simulate currentNode again and backpropagate				
 				wins, loss, _, _ = Rollout(currentNode.state, nSims)
 				N += nSims
 				backProp(currentNode, wins, loss, nSims)
 				N += nSims
 
 			} else {
-				// if there are children, select and rollout new node
+
+				// If expansion yields children, 
+				// Select a child and commence rollout on child node
+				// Backpropate from child node
 				currentNode = currentNode.selectChild(N, "max")
 				wins, loss, _, _ = Rollout(currentNode.state, nSims)
 				N += nSims
 				backProp(currentNode, wins, loss, nSims)
 				N += nSims
 			}
-
 		}
-	
-
 	}
 
-	// fmt.Println("DECISION BASED ON ORIGINAL ")
-	// for _, child := range root.children {
-	// 	// fmt.Println("orig: ", child.position, child.wins, child.played, float64(child.wins)/float64(child.played+1) + child.mobility)
-	// 	if float64(child.wins)/float64(child.played+1) + child.mobility < minScore &&  float64(child.wins)/float64(child.played+1) + child.mobility > 0 {
-	// 		minScore = float64(child.wins)/float64(child.played+1) + child.mobility
-	// 		decision = child.position
-	// 	}
-	// }
-	// fmt.Println("selectChild: ", root.selectChild(0, "min").position)
-	// fmt.Println("original: ", decision, minScore)
+	// Once all simulation and max iterations reached
+	// Select the child from the root node
+	// This will be the move the agent makes
 	decision = root.selectChild(0, "min").position
+
 	return decision
 }
 
@@ -742,63 +778,108 @@ func Search(root Node, nSims int, max_iter int) Position {
 
 // 	//####
 
-	// time_start := time.Now()
+func Simulator(N int, nSims int, max_iter int) {
+	// Simulate N games with agent pitted against random play
+	// Returns # of games won/lost/draw for MCTS agent
+	// Used as benchmark testing against Search() function 
+	nBlackWins :=0
+	nWhiteWins :=0
+	nDraws :=0
 
-	// nBlackWins :=0
-	// nWhiteWins :=0
-	// nDraws :=0
-
-	// for nGames:=0; nGames < 100; nGames++ {
-	// 	game := newGame()
-	// 	root := Node{
-	// 		// state:newGame(),
-	// 		state:game,
-	// 		depth:0,
-	// 	}
-	// 	move := Position{0,0}
-	// 	// Black plays as MCTS, white random
-	// 	for {
-	// 		if game.winner == 0 {
-	// 			if game.turn == 1 {
-	// 				root = Node{state:game, depth:0}
-	// 				move = Search(root, 1, 100)
-	// 				// game.Show()
-	// 				game.Move(move)
-	// 				// fmt.Println("*************")
-	// 				// game.Show()
-					
-	// 				fmt.Println("Black moves: ", move.PrintPrettifyNotation(), game.blackScore, game.whiteScore)
-
-	// 			} else {
-	// 				rand.Seed(time.Now().UTC().UnixNano()) //rand is deterministic. Need to set seed 
-	// 				move = game.validSpace[rand.Intn(len(game.validSpace))]
-	// 				game.Move(move)	
-	// 				fmt.Println("White moves: ", move.PrintPrettifyNotation(), game.blackScore, game.whiteScore)
-
-	// 			}
-
-	// 		} else {break}
-	// 	}
-
-	// 	// game.Show()
-	// 	fmt.Println("Game # ", nGames, "**************")
-	// 	fmt.Println(game.winner, game.blackScore, game.whiteScore)
-
-	// 	if game.winner == 1 {
-	// 		nBlackWins +=1
-	// 	}
-	// 	if game.winner == -1 {
-	// 		nWhiteWins +=1
-	// 	}
-	// 	if game.winner == 99 {
-	// 		nDraws +=1
-	// 	}
-	// }
-	// fmt.Printf("Black Wins: %d , White Wins: %d , Draws: %d \n", nBlackWins, nWhiteWins, nDraws)
-
+	for nGames:=0; nGames < N; nGames++ {
+		game := newGame()
+		root := Node{
+			state:game,
+			depth:0,
+		}
+		move := Position{0,0}
+		// Black plays as MCTS, white random
+		for {
+			if game.winner == 0 {
+				if game.turn == 1 {
+					root = Node{state:game, depth:0}
+					move = Search(root, nSims, max_iter)
+					game.Move(move)					
+					// fmt.Println("Black moves: ", move.PrintPrettifyNotation(), game.blackScore, game.whiteScore)
+				} else {
+					rand.Seed(time.Now().UTC().UnixNano()) 
+					move = game.validSpace[rand.Intn(len(game.validSpace))]
+					// When a very bad position is chosen,
+					// Choose again, repeat again if very bad position chosen
+					if posInSlice(move, veryBadPositions) == true {
+						move = game.validSpace[rand.Intn(len(game.validSpace))]
+						if posInSlice(move, veryBadPositions) == true {
+							move = game.validSpace[rand.Intn(len(game.validSpace))]
+						}
+					}
+					// fmt.Println("White moves: ", move.PrintPrettifyNotation(), game.blackScore, game.whiteScore)
+					game.Move(move)	
+				}
+			} else {break}
+		}
+		fmt.Println("Game #", nGames, game.winner, game.blackScore, game.whiteScore)
+		if game.winner == 1 {
+			nBlackWins +=1
+		}
+		if game.winner == -1 {
+			nWhiteWins +=1
+		}
+		if game.winner == 99 {
+			nDraws +=1
+		}
+	}
+	fmt.Printf("Black Wins: %d , White Wins: %d , Draws: %d \n", nBlackWins, nWhiteWins, nDraws)
+}
 
 
-
-	// elapsed := time.Since(time_start)
-	// fmt.Println("Time elapsed: ", elapsed)
-// }
+func RandomRandomPlay(N int) {
+	// Simulate N games with random play pitted against random play
+	// Returns # of games won/lost/draw for Black vs White
+	nBlackWins :=0
+	nWhiteWins :=0
+	nDraws :=0
+	for nGames:=0; nGames < N; nGames++ {
+		game := newGame()
+		move := Position{0,0}
+		for {
+			if game.winner == 0 {
+				if game.turn == 1 {
+					rand.Seed(time.Now().UTC().UnixNano()) 
+					move = game.validSpace[rand.Intn(len(game.validSpace))]
+					// When a very bad position is chosen,
+					// Choose again, repeat again if very bad position chosen
+					if posInSlice(move, veryBadPositions) == true {
+						move = game.validSpace[rand.Intn(len(game.validSpace))]
+						if posInSlice(move, veryBadPositions) == true {
+							move = game.validSpace[rand.Intn(len(game.validSpace))]
+						}
+					}
+				} else {
+					rand.Seed(time.Now().UTC().UnixNano()) 
+					move = game.validSpace[rand.Intn(len(game.validSpace))]
+					// When a very bad position is chosen,
+					// Choose again, repeat again if very bad position chosen
+					if posInSlice(move, veryBadPositions) == true {
+						move = game.validSpace[rand.Intn(len(game.validSpace))]
+						if posInSlice(move, veryBadPositions) == true {
+							move = game.validSpace[rand.Intn(len(game.validSpace))]
+						}
+					}
+				}
+				// fmt.Println("White moves: ", move.PrintPrettifyNotation(), game.blackScore, game.whiteScore)
+				game.Move(move)	
+			} else {break}
+		}
+		fmt.Println("Game #", nGames, game.winner, game.blackScore, game.whiteScore)
+		if game.winner == 1 {
+			nBlackWins +=1
+		}
+		if game.winner == -1 {
+			nWhiteWins +=1
+		}
+		if game.winner == 99 {
+			nDraws +=1
+		}
+	}
+	fmt.Printf("Black Wins: %d , White Wins: %d , Draws: %d \n", nBlackWins, nWhiteWins, nDraws)
+}
