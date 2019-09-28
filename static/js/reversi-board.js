@@ -597,12 +597,11 @@ function agentMove(turn) {
             return json_response
         }
     }
-    xhttp.open('POST', 'http://localhost:8080/search_move', true);
+    xhttp.open('POST', '/search_move', true);
     data = JSON.stringify({
         "blackFilled":colourArrays["blackArray"],    
         "whiteFilled":colourArrays["whiteArray"],    
         "turn":turn,
         })
-    console.log(data);
     xhttp.send(data);
 }
