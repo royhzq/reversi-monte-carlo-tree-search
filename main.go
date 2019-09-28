@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -8,7 +9,8 @@ import (
 )
 
 func main() {
-	RunSimulation(1)
+	fmt.Println("Running revers-mcts application...")
+	fmt.Println("Application is running at: http://localhost:8080")
 	router := mux.NewRouter().StrictSlash(true)
 	s := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
 	router.HandleFunc("/", Index)
