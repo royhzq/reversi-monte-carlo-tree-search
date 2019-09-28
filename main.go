@@ -11,7 +11,7 @@ import (
 func main() {
 	fmt.Println("Running revers-mcts application...")
 	fmt.Println("Application is running at: http://localhost:8080")
-	router := mux.NewRouter().StrictSlash(true)
+	router := mux.NewRouter()
 	s := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
 	router.HandleFunc("/", Index)
 	router.HandleFunc("/search_move", GameStateAPI)

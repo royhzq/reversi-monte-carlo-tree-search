@@ -55,6 +55,7 @@ func GameStateAPI(w http.ResponseWriter, r *http.Request) {
 	*/
 	var state = GameState{}
 	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
+
 	if err != nil {
 		panic(err)
 	}
@@ -77,9 +78,9 @@ func GameStateAPI(w http.ResponseWriter, r *http.Request) {
 		BlackScore:game.blackScore,
 		WhiteScore:game.whiteScore,
 	}
-	
+
 	//Allow CORS here By * or specific origin
-    // w.Header().Set("Access-Control-Allow-Origin", "*")
+    w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(response)
 
 }
