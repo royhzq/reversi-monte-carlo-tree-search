@@ -77,6 +77,9 @@ func GameStateAPI(w http.ResponseWriter, r *http.Request) {
 		BlackScore:game.blackScore,
 		WhiteScore:game.whiteScore,
 	}
+	
+	//Allow CORS here By * or specific origin
+    // w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(response)
 
 }
