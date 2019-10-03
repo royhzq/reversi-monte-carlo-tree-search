@@ -587,19 +587,18 @@ func (n *Node) selectChild(N int, best string) *Node {
 		// Inner pieces, or pieces close to the center of the board
 		// have a higher value as they allow for more connections
 		// to all other parts of the board
-		innerScore := uctScore * 0.8/math.Sqrt((math.Pow((float64(child.position.i)-3.5),2)+math.Pow((float64(child.position.j)-3.5),2)))
-
-		// Penalty for greed 
+		innerScore := uctScore * 1/math.Sqrt((math.Pow((float64(child.position.i)-3.5),2)+math.Pow((float64(child.position.j)-3.5),2)))
+		// Penalty for greed 	
 		// Squared denominator penalizes early game greed more heavily
 		// Flipping more pieces early in the game is generally a bad strategy
 		// Greediness gives less mobility in early to mid-games
 		greedPenalty := 0.00
 		if n.state.turn == 1 {
-			greedPenalty = float64(child.state.blackScore - n.state.blackScore)/math.Pow(float64(child.state.blackScore + child.state.whiteScore),1)
+			greedPenalty = uctScore * float64(child.state.blackScore - n.state.blackScore)/math.Pow(float64(child.state.blackScore + child.state.whiteScore),4)
 		} 
 		if n.state.turn == -1 {
-			greedPenalty = float64(child.state.whiteScore - n.state.whiteScore)/math.Pow(float64(child.state.blackScore + child.state.whiteScore),1)
-		}
+			greedPenalty = uctScore * float64(child.state.whiteScore - n.state.whiteScore)/math.Pow(float64(child.state.blackScore + child.state.whiteScore),4)
+	}
 
 		// Adjustment score to account for generally good / bad positions
 		// - Encourages making moves that are corners
@@ -607,23 +606,26 @@ func (n *Node) selectChild(N int, best string) *Node {
 		positionScore := 0.00
 		for _, corner := range corners {
 			if child.position == corner {
-				positionScore = uctScore *0.5
+				positionScore = uctScore *1.5
 			}
 		}
 		for _, badpos := range badPositions {
 			if child.position == badpos {
-				positionScore = uctScore * (-0.15)
+				positionScore = uctScore * (-0.55)
 			}
 		}
 		for _, badpos := range veryBadPositions {
 			if child.position == badpos {
-				positionScore = uctScore * (-0.35)
+				positionScore = uctScore * (-100)
 			}
 		}
 		if best == "max" {
-			totalUCTScore = uctScore  + innerScore + positionScore - greedPenalty
-			totalUCTScore = uctScore 
-			// totalUCTScore = uctScore + mobScore + innerScore + positionScore - greedPenalty
+
+			if child.state.blackScore + child.state.whiteScore > 50 {
+				totalUCTScore = uctScore
+			} else {
+				totalUCTScore = uctScore  + innerScore + positionScore - greedPenalty
+			}
 			if totalUCTScore  > best_uctScore {
 				best_uctScore = totalUCTScore
 				index_best_score = i
@@ -631,10 +633,11 @@ func (n *Node) selectChild(N int, best string) *Node {
 		} 
 		if best =="min" {
 
-			// If selecting on minimum, only select nodes that been explored 
-			totalUCTScore = uctScore  - innerScore - positionScore + greedPenalty
-			totalUCTScore = uctScore
-			// totalUCTScore = uctScore + mobScore - innerScore - positionScore + greedPenalty
+			if child.state.blackScore + child.state.whiteScore > 50 {
+				totalUCTScore = uctScore
+			} else {
+				totalUCTScore = uctScore  - innerScore - positionScore + greedPenalty
+			}
 			if totalUCTScore  < best_uctScore && child.played > 0 {
 				best_uctScore = totalUCTScore
 				index_best_score = i
@@ -773,7 +776,7 @@ func Simulator(N int, nSims int, max_iter int) simResults {
 					root = Node{state:game, depth:0}
 					move = Search(root, nSims, max_iter)
 					game.Move(move)					
-					// fmt.Println("Black moves: ", move.PrintPrettifyNotation(), game.blackScore, game.whiteScore)
+					fmt.Println("Black moves: ", move.PrintPrettifyNotation(), game.blackScore, game.whiteScore)
 				} else {
 					rand.Seed(time.Now().UTC().UnixNano()) 
 					move = game.validSpace[rand.Intn(len(game.validSpace))]
@@ -786,11 +789,11 @@ func Simulator(N int, nSims int, max_iter int) simResults {
 						}
 					}
 					game.Move(move)	
-					// fmt.Println("White moves: ", move.PrintPrettifyNotation(), game.blackScore, game.whiteScore)
+					fmt.Println("White moves: ", move.PrintPrettifyNotation(), game.blackScore, game.whiteScore)
 				}
 			} else {break}
 		}
-		// fmt.Println("Game #", nGames, game.winner, game.blackScore, game.whiteScore, time.Now().UTC().Format("20060102150405"))
+		fmt.Println("Game #", nGames, game.winner, game.blackScore, game.whiteScore, time.Now().UTC().Format("20060102150405"))
 		if game.winner == 1 {
 			nBlackWins +=1
 		}

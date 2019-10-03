@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+	// Simulator(100, 10, 100)
 	fmt.Println("Running revers-mcts application...")
 	fmt.Println("Application is running at: http://localhost:8080")
 	router := mux.NewRouter()
