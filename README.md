@@ -17,7 +17,7 @@ Next, make sure ``` $GOPATH ``` is set (e.g. as ~/go) and:
 $ cd $GOPATH/src
 $ git clone https://gitlab.com/royhung_/reversi-monte-carlo-tree-search.git
 $ cd reversi-monte-carlo-tree-search
-$ go build
+$ go build main.go reversi.go api.go
 ```
 
 # Using reversi-mcts
